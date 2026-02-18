@@ -214,6 +214,18 @@ namespace InjectNames
             return originalName;
         }
 
+        private static double CalculateArea(string length, string width, int quantity)
+        {
+            if (double.TryParse(length, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double l)
+                && double.TryParse(width, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out double w))
+            {
+                return l * w * quantity / 1_000_000.0;
+            }
+            return 0;
+        }
+
         private static void ExportToCsv(string path, List<BlockData> data)
         {
             var groups = data
@@ -222,6 +234,7 @@ namespace InjectNames
 
             var sb = new StringBuilder();
             bool first = true;
+            double grandTotal = 0;
 
             foreach (var group in groups)
             {
@@ -230,17 +243,26 @@ namespace InjectNames
                 first = false;
 
                 sb.AppendLine($"{EscapeCsv(group.Key)}");
-                sb.AppendLine("NAME,Length,Width,Quantity");
+                sb.AppendLine("NAME,Length,Width,Quantity,Area");
 
                 var merged = group
                     .GroupBy(b => b.Name)
                     .Select(g => (Block: g.First(), Quantity: g.Count()));
 
+                double groupTotal = 0;
+
                 foreach (var (block, quantity) in merged)
                 {
-                    sb.AppendLine($"{EscapeCsv(block.Name)},{EscapeCsv(block.Length)},{EscapeCsv(block.Width)},{quantity}");
+                    double area = CalculateArea(block.Length, block.Width, quantity);
+                    groupTotal += area;
+                    sb.AppendLine($"{EscapeCsv(block.Name)},{EscapeCsv(block.Length)},{EscapeCsv(block.Width)},{quantity},{area:F2}");
                 }
+
+                sb.AppendLine($",,,,{groupTotal:F2}");
+                grandTotal += groupTotal;
             }
+            sb.AppendLine();
+            sb.AppendLine($"Total,,,,{grandTotal:F2}");
 
             File.WriteAllText(path, sb.ToString());
         }
