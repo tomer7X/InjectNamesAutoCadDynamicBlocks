@@ -230,39 +230,45 @@ namespace InjectNames
         {
             var groups = data
                 .GroupBy(b => GetPrefix(b.OriginalName))
-                .OrderBy(g => g.Key);
+                .OrderBy(g => g.Key)
+                .ToList();
 
-            var sb = new StringBuilder();
-            bool first = true;
+            var groupRows = new List<(string Key, List<(BlockData Block, int Quantity)> Merged, double Total)>();
+
             double grandTotal = 0;
 
             foreach (var group in groups)
             {
-                if (!first)
-                    sb.AppendLine();
-                first = false;
-
-                sb.AppendLine($"{EscapeCsv(group.Key)}");
-                sb.AppendLine("NAME,Length,Width,Quantity,Area");
-
                 var merged = group
                     .GroupBy(b => b.Name)
-                    .Select(g => (Block: g.First(), Quantity: g.Count()));
+                    .Select(g => (Block: g.First(), Quantity: g.Count()))
+                    .ToList();
 
                 double groupTotal = 0;
+                foreach (var (block, quantity) in merged)
+                    groupTotal += CalculateArea(block.Length, block.Width, quantity);
+
+                groupRows.Add((group.Key, merged, groupTotal));
+                grandTotal += groupTotal;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"Total,,,,{grandTotal:F2}");
+
+            foreach (var (key, merged, groupTotal) in groupRows)
+            {
+                sb.AppendLine();
+                sb.AppendLine($"{EscapeCsv(key)}");
+                sb.AppendLine("NAME,Length,Width,Quantity,Area");
 
                 foreach (var (block, quantity) in merged)
                 {
                     double area = CalculateArea(block.Length, block.Width, quantity);
-                    groupTotal += area;
                     sb.AppendLine($"{EscapeCsv(block.Name)},{EscapeCsv(block.Length)},{EscapeCsv(block.Width)},{quantity},{area:F2}");
                 }
 
                 sb.AppendLine($",,,,{groupTotal:F2}");
-                grandTotal += groupTotal;
             }
-            sb.AppendLine();
-            sb.AppendLine($"Total,,,,{grandTotal:F2}");
 
             File.WriteAllText(path, sb.ToString());
         }
