@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Launch AutoCAD": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Program Files\\Autodesk\\AutoCAD 2026\\acad.exe",
+      "commandLineArgs": "/p <<Default Profile>> /nologo",
+      "workingDirectory": "C:\\Program Files\\Autodesk\\AutoCAD 2026",
+      "nativeDebugging": false
+    }
+  }
+}
