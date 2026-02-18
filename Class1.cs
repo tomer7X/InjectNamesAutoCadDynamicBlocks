@@ -24,7 +24,13 @@ namespace InjectNames
 
             using (Transaction tr = db.TransactionManager.StartTransaction())
             {
-                var (foundBlocks, seenNames) = FindBlocksByName(tr, db, TargetBlockName);
+                var (foundBlocks, seenNames) = SelectBlocksByName(ed, tr, TargetBlockName);
+
+                if (foundBlocks == null)
+                {
+                    tr.Commit();
+                    return;
+                }
 
                 if (foundBlocks.Count == 0)
                 {
@@ -66,19 +72,29 @@ namespace InjectNames
             }
         }
 
-        private static (List<BlockReference> Found, HashSet<string> SeenNames) FindBlocksByName(
-            Transaction tr, Database db, string targetName)
+        private static (List<BlockReference>? Found, HashSet<string> SeenNames) SelectBlocksByName(
+            Editor ed, Transaction tr, string targetName)
         {
+            ed.WriteMessage("\nSelect an area containing the blocks to process:");
+
+            var filter = new SelectionFilter([
+                new TypedValue((int)DxfCode.Start, "INSERT")
+            ]);
+
+            PromptSelectionResult selResult = ed.GetSelection(filter);
+
+            if (selResult.Status != PromptStatus.OK)
+            {
+                ed.WriteMessage("\nSelection cancelled.");
+                return (null, []);
+            }
+
             var found = new List<BlockReference>();
             var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            BlockTable bt = (BlockTable)tr.GetObject(db.BlockTableId, OpenMode.ForRead);
-            BlockTableRecord ms = (BlockTableRecord)tr.GetObject(bt[BlockTableRecord.ModelSpace], OpenMode.ForRead);
-
-            foreach (ObjectId objId in ms)
+            foreach (ObjectId objId in selResult.Value.GetObjectIds())
             {
-                Entity ent = tr.GetObject(objId, OpenMode.ForRead) as Entity;
-                if (ent is BlockReference br)
+                if (tr.GetObject(objId, OpenMode.ForRead) is BlockReference br)
                 {
                     string effectiveName = GetBlockEffectiveName(tr, br);
                     seenNames.Add(effectiveName);
