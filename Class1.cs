@@ -15,7 +15,7 @@ namespace InjectNames
     {
         private const string TargetBlockName = "Panel";
 
-        [CommandMethod("giveNames", CommandFlags.Modal | CommandFlags.Redraw)]
+        [CommandMethod("NHGiveNamesQuantityCalculation", CommandFlags.Modal | CommandFlags.Redraw)]
         public void CreateNamesCommand()
         {
             Document doc = Application.DocumentManager.MdiActiveDocument;
